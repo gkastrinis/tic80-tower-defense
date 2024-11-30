@@ -1,9 +1,13 @@
 function BOOT()
-	Castle={x=108,y=48,hp=5,gold=10}
-	Skull={x=0,y=52}
+	Castle={x=108,y=48,hp=5,gold=5,over=false}
+	Path1={24,1,24,88,64,88,64,56,108,56}
+	Path2={112,1,112,48}
+	Path3={}
+	Enemies={}
+	t=0
 end
 
-function remap(tile,x,y)
+function Remap(tile,x,y)
 	local flip,rotate=0,0
 	if x==8 and y==11 then flip=1 end
 	if x==8 and y==7 then rotate=1 end
@@ -23,33 +27,80 @@ function remap(tile,x,y)
 end
 
 function TIC()
-	if btn(0) then Skull.y=Skull.y-1 end
-	if btn(1) then Skull.y=Skull.y+1 end
-	if btn(2) then Skull.x=Skull.x-1 end
-	if btn(3) then Skull.x=Skull.x+1 end
-	if btnp(4) then Castle.hp=Castle.hp-1 end
-	if btnp(5) then Castle.hp=Castle.hp+1 end
-	if btnp(6) then Castle.gold=Castle.gold-1 end
-	if btnp(7) then Castle.gold=Castle.gold+1 end
+	HandleInput()
 
-	map(0,0,30,17,0,0,-1,1,remap)
-	DrawHUD()
-	spr(288,Castle.x,Castle.y,0,1,0,0,2,2)
-	spr(258,Skull.x,Skull.y,0,1,1,0,1,1)
-	-- spr(256,Skull.x//2,Skull.y,0,1,1,0,2,2)
+	DrawMap()
+
+	EnemyLogic()
+
+	-- Move time
+	t=t<60 and t+1 or 0
 end
 
-function DrawHUD()
-	local fullHearts=math.floor(Castle.hp/2)
-	for i=1,fullHearts do
-		spr(292,240-16*i,120,0,1,0,0,2,2)
-	end
-	if math.fmod(Castle.hp,2)==1 then
-		spr(293,240-16*fullHearts-8,120,0,1,0,0,1,2)
+function EnemyLogic()
+	DrawEnemies()
+
+	if Castle.over then return end
+
+	if t==0 then
+		local Skull={p=Path1,idx=1}
+		Skull.x=Skull.p[Skull.idx]
+		Skull.y=Skull.p[Skull.idx+1]
+		table.insert(Enemies,Skull)
 	end
 
-	spr(290,0,120,0,1,0,0,2,2)
-	print(Castle.gold,16,124,12,false,2)
+	for i,e in ipairs(Enemies) do
+		local p,idx=e.p,e.idx
+		local aX,aY,bX,bY=p[idx],p[idx+1],p[idx+2],p[idx+3]
+		if e.idx==#p-1 then
+			Castle.hp=Castle.hp-1
+			table.remove(Enemies,i)
+		else
+			if aX == bX then
+				if aY < bY then e.y=e.y+1 else e.y=e.y-1 end
+			else
+				if aX < bX then e.x=e.x+1 else e.x=e.x-1 end
+			end
+			if e.x==bX and e.y==bY then e.idx=idx+2 end
+		end
+	end
+end
+
+function DrawEnemies()
+	for i,e in ipairs(Enemies) do
+		spr(258,e.x,e.y,0,1,1,0,1,1)
+		-- spr(256,e.x//2,e.y,0,1,1,0,2,2)
+	end
+end
+
+function HandleInput()
+	if btnp(4) then Castle.hp=Castle.hp-1 end
+	if btnp(5) then Castle.hp=Castle.hp+1 end
+	--if btnp(6) then Castle.gold=Castle.gold-1 end
+	--if btnp(7) then Castle.gold=Castle.gold+1 end
+end
+
+function DrawMap()
+	map(0,0,30,17,0,0,-1,1,Remap)
+
+	local castleID=Castle.hp>0 and 288 or 320
+	spr(castleID,Castle.x,Castle.y,0,1,0,0,2,2)
+
+	if Castle.hp>0 then
+		local fullHearts=math.floor(Castle.hp/2)
+		for i=1,fullHearts do
+			spr(292,240-16*i,120,0,1,0,0,2,2)
+		end
+		if math.fmod(Castle.hp,2)==1 then
+			spr(293,240-16*fullHearts-8,120,0,1,0,0,1,2)
+		end
+
+		spr(290,0,120,0,1,0,0,2,2)
+		print(Castle.gold,16,124,12,false,2)
+	else
+		Castle.over=true
+		print("Game Over",68,124,2,false,2)
+	end
 end
 
 -- <TILES>
@@ -82,6 +133,10 @@ end
 -- 051:4440000034400000044000004440000044300000330000000000000000000000
 -- 052:0112222200122222001122220001122200001122000001120000001100000000
 -- 053:2222220022222000222220002222000022200000220000002000000000000000
+-- 064:00000000000e0ee0000eeeee000ddddd0e0edede0eeeee2e0dddd2220dffdd22
+-- 065:00000000e0002000eee23020dd234200ee2342f02eeef2f01ddddff01dffddf0
+-- 080:0df2d2220df2d2320dff22320dd223320dd233430d723443077734c4777773c4
+-- 081:1d8fdff0d2ffdff0d2ffddf02ddddff022dddff032dddf7032ddd77036677777
 -- </SPRITES>
 
 -- <MAP>
@@ -119,4 +174,3 @@ end
 -- <PALETTE>
 -- 000:1a1c2c5d275db13e53ef7d57ffcd75a7f07038b76425717929366f3b5dc941a6f673eff7f4f4f494b0c2566c86333c57
 -- </PALETTE>
-
