@@ -2,7 +2,7 @@ function BOOT()
 	Game={tower=288,towerOK=288,towerFire=320,skull=258,ghost=259,bat=260}
 	Game.over=false
 
-	HQ={x=108,y=48,hp=5,gold=5}
+	HQ={x=108,y=48,hp=13,gold=5}
 	Path1={24,1,24,88,64,88,64,56,108,56}
 	-- Path2={112,1,112,48}
 	Path3={208,112,208,16,184,16,184,64,152,64,152,48,116,48}
@@ -88,12 +88,18 @@ function Draw()
 	spr(Game.tower,HQ.x,HQ.y,0,1,0,0,2,2)
 
 	if not Game.over then
-		local fullHearts=math.floor(HQ.hp/2)
+		local fullHearts=math.floor(HQ.hp/4)
 		for i=1,fullHearts do
 			spr(292,240-16*i,120,0,1,0,0,2,2)
 		end
-		if math.fmod(HQ.hp,2)==1 then
-			spr(293,240-16*fullHearts-8,120,0,1,0,0,1,2)
+		local rest,restX=math.fmod(HQ.hp,4),240-16*fullHearts-8
+		if rest==1 then
+			spr(293,restX,120,0,1,0,0,1,1)
+		elseif rest==2 then
+			spr(293,restX,120,0,1,0,0,1,2)
+		elseif rest==3 then
+			spr(292,restX-8,120,0,1,0,0,1,1)
+			spr(293,restX,120,0,1,0,0,1,2)
 		end
 
 		spr(290,0,120,0,1,0,0,2,2)
@@ -127,6 +133,8 @@ end
 -- 016:000ccc3c0000cc3c00000ccc00004343000044c4000004440000000000000000
 -- 017:cc443000c4433000c343000044400000c4300000400000000000000000000000
 -- 018:000000000ff0ff00fc3f32f0f33322f00f332f0000f2f000000f000000000000
+-- 019:0000000000344400034222400343324003433240034332400034440000000000
+-- 020:0044420004233420423423424244424242444242423423420423342000444200
 -- 032:00000000000e0ee0000eeeee000ddddd0e0edede0eeeeeee0ddddd2c0d84dd2c
 -- 033:00000000e0e0f000eeeef000dddff000edeff0f0eeeefff02ddddff02d84ddf0
 -- 034:0000000000000044000000440000444400044433000443000004440000034444
