@@ -1,9 +1,13 @@
 function BOOT()
-	Castle={x=108,y=48,hp=5,gold=5,over=false}
+	Game={tower=288,towerOK=288,towerFire=320,skull=258,ghost=259,bat=260}
+	Game.over=false
+
+	HQ={x=108,y=48,hp=5,gold=5}
 	Path1={24,1,24,88,64,88,64,56,108,56}
-	Path2={112,1,112,48}
-	Path3={}
+	-- Path2={112,1,112,48}
+	Path3={208,112,208,16,184,16,184,64,152,64,152,48,116,48}
 	Enemies={}
+	-- Track time
 	t=0
 end
 
@@ -27,33 +31,44 @@ function Remap(tile,x,y)
 end
 
 function TIC()
-	HandleInput()
-
-	DrawMap()
-
-	EnemyLogic()
-
-	-- Move time
-	t=t<60 and t+1 or 0
+	Input()
+	Update()
+	Draw()
+	-- local mx,my,a,b,c,d,e,f=mouse()
+	-- if mx==nil then ;
+	-- else print(mx.." "..my,50,120) end
+	-- spr(256,e.x//2,e.y,0,1,1,0,2,2)
 end
 
-function EnemyLogic()
-	DrawEnemies()
+function Input()
+	if btnp(4) then HQ.hp=HQ.hp-1 end
+	if btnp(5) then HQ.hp=HQ.hp+1 end
+end
 
-	if Castle.over then return end
+function Update()
+	if HQ.hp==0 then
+		Game.tower=Game.towerFire
+		Game.over=true
+		return
+	end
 
 	if t==0 then
-		local Skull={p=Path1,idx=1}
-		Skull.x=Skull.p[Skull.idx]
-		Skull.y=Skull.p[Skull.idx+1]
-		table.insert(Enemies,Skull)
+		local en={id=Game.skull,p=Path1,idx=1,flip=1}
+		en.x=en.p[en.idx]
+		en.y=en.p[en.idx+1]
+		table.insert(Enemies,en)
+	elseif t==60 then
+		local en={id=Game.bat,p=Path3,idx=1,flip=0}
+		en.x=en.p[en.idx]
+		en.y=en.p[en.idx+1]
+		table.insert(Enemies,en)
 	end
 
 	for i,e in ipairs(Enemies) do
 		local p,idx=e.p,e.idx
 		local aX,aY,bX,bY=p[idx],p[idx+1],p[idx+2],p[idx+3]
 		if e.idx==#p-1 then
-			Castle.hp=Castle.hp-1
+			HQ.hp=HQ.hp-1
 			table.remove(Enemies,i)
 		else
 			if aX == bX then
@@ -64,42 +79,31 @@ function EnemyLogic()
 			if e.x==bX and e.y==bY then e.idx=idx+2 end
 		end
 	end
+
+	t=t<120 and t+1 or 0
 end
 
-function DrawEnemies()
-	for i,e in ipairs(Enemies) do
-		spr(258,e.x,e.y,0,1,1,0,1,1)
-		-- spr(256,e.x//2,e.y,0,1,1,0,2,2)
-	end
-end
-
-function HandleInput()
-	if btnp(4) then Castle.hp=Castle.hp-1 end
-	if btnp(5) then Castle.hp=Castle.hp+1 end
-	--if btnp(6) then Castle.gold=Castle.gold-1 end
-	--if btnp(7) then Castle.gold=Castle.gold+1 end
-end
-
-function DrawMap()
+function Draw()
 	map(0,0,30,17,0,0,-1,1,Remap)
+	spr(Game.tower,HQ.x,HQ.y,0,1,0,0,2,2)
 
-	local castleID=Castle.hp>0 and 288 or 320
-	spr(castleID,Castle.x,Castle.y,0,1,0,0,2,2)
-
-	if Castle.hp>0 then
-		local fullHearts=math.floor(Castle.hp/2)
+	if not Game.over then
+		local fullHearts=math.floor(HQ.hp/2)
 		for i=1,fullHearts do
 			spr(292,240-16*i,120,0,1,0,0,2,2)
 		end
-		if math.fmod(Castle.hp,2)==1 then
+		if math.fmod(HQ.hp,2)==1 then
 			spr(293,240-16*fullHearts-8,120,0,1,0,0,1,2)
 		end
 
 		spr(290,0,120,0,1,0,0,2,2)
-		print(Castle.gold,16,124,12,false,2)
+		print(HQ.gold,16,124,12,false,2)
 	else
-		Castle.over=true
 		print("Game Over",68,124,2,false,2)
+	end
+
+	for i,e in ipairs(Enemies) do
+		spr(e.id,e.x,e.y,0,1,e.flip,0,1,1)
 	end
 end
 
@@ -118,6 +122,8 @@ end
 -- 000:00000000000000000000000000000ccc0000cccc0000cccc000c32cc000c32cc
 -- 001:00000000000000000000000044400000c4430000cc4400003244300032443000
 -- 002:0ffffff0ffcccddffcccccdf02c22cdffcfcccdffccccdff0fcfcdf00ffffff0
+-- 003:000002330000224200324320ccccc320fcfcc420cfcc3200ccc3200003420000
+-- 004:0000000000000000220000222220022222ddee22023e3e2000deee0000e0ee00
 -- 016:000ccc3c0000cc3c00000ccc00004343000044c4000004440000000000000000
 -- 017:cc443000c4433000c343000044400000c4300000400000000000000000000000
 -- 018:000000000ff0ff00fc3f32f0f33322f00f332f0000f2f000000f000000000000
