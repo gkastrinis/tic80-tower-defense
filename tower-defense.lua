@@ -1,19 +1,20 @@
 function BOOT()
-	Game={tower=256,towerOK=256,towerFire=258,
-		skull=264,bat=266,
-		money=262,hp=260,hover=290
+	UI={
+		tower=256,towerOK=256,towerFire=258,
+		skull=264,bat=266,smoke1=292,smoke2=294,
+		money=262,hp=260,hover=290,
+		mapX=0,mapY=0
 	}
-	Game.mapOffsetX=0
-	Game.mapOffsetY=0
-	Game.over=false
-
-	HQ={x=104,y=58,hp=13,gold=5}
-	Path1={{16,0},{16,88},{104,88},{104,56}}
-	Path2={{200,106},{200,16},{104,16},{104,56}}
-	-- Path3={112,1,112,48}
+	Game={
+		over=false,
+		path1={{16,0},{16,88},{104,88},{104,56}},
+		path2={{200,106},{200,16},{104,16},{104,56}},
+		time=0
+	}
 	Enemies={}
-	-- Track time
-	t=0
+	SFX={}
+	HQ={x=104,y=58,hp=12,gold=5}
+	-- Path3={112,1,112,48}
 end
 
 function Remap(tile,x,y)
@@ -56,96 +57,134 @@ function TIC()
 	Draw()
 
 	local mx,my,a,b,c,d,e,f=mouse()
-	if mx==nil then ;
-	else print(mx.." "..my,50,120) end
-
-	-- spr(256,e.x//2,e.y,0,1,1,0,2,2)
-	-- spr(322,64,48,0,1,1,0,1,1)
-	-- spr(323,72,56,0)
-
+	-- if mx==nil then ;
+	-- else print(mx.." "..my,64,126) end
 	local xMod,yMod=math.fmod(mx,8),math.fmod(my,8)
-	spr(Game.hover,mx-xMod,my-yMod,0)
+	-- spr(UI.hover,mx-xMod,my-yMod,0)
 end
 
 function Input()
-	if btnp(4) then HQ.hp=HQ.hp-1 end
-	if btnp(5) then HQ.hp=HQ.hp+1 end
+	-- if btnp(4) then HQ.hp=HQ.hp-1 end
+	-- if btnp(5) then HQ.hp=HQ.hp+1 end
 end
 
 function Update()
-	if HQ.hp==0 then
-		Game.tower=Game.towerFire
-		Game.over=true
-		Game.mapOffsetX=0
-		Game.mapOffsetY=0
-		return
+	UpdateSFX()
+	if not Game.over then
+		UpdateEnemies()
+		UpdateGame()
 	end
-	if Game.mapOffsetX>0 then
-		Game.mapOffsetX=Game.mapOffsetX-1
-	end
-	if Game.mapOffsetY>0 then
-		Game.mapOffsetY=Game.mapOffsetY-1
-	end
+end
 
+function UpdateSFX()
+	for i,f in ipairs(SFX) do
+		if f.type == "shake" then
+			if f.x>0 then f.x = f.x-1 end
+			if f.y>0 then f.y = f.y-1 end
+			UI.mapX = f.x
+			UI.mapY = f.y
+			if f.x==0 and f.y==0 then table.remove(SFX,i) end
+		elseif f.type == "visual" and f.kind == "smoke" then
+			if math.fmod(f.t,4)==0 then
+				f.x = f.x-1
+				f.y = f.y-1
+			end
+			if f.id == UI.smoke1 and f.t == 4 then f.id = UI.smoke2 end
+			f.t = f.t-1
+			if f.t == 0 then table.remove(SFX,i) end
+		end
+	end
+end
 
-	if t==0 then
-		local en={id=Game.skull,p=Path1,idx=1,flip=1}
-		en.x=en.p[en.idx][1]
-		en.y=en.p[en.idx][2]
-		table.insert(Enemies,en)
-	elseif t==60 then
-		local en={id=Game.bat,p=Path2,idx=1,flip=1}
-		en.x=en.p[en.idx][1]
-		en.y=en.p[en.idx][2]
-		table.insert(Enemies,en)
+function UpdateEnemies()
+	if Game.time == 0 then
+		local en={id=UI.skull, p=Game.path1,idx=1,flip=1}
+		en.x = en.p[en.idx][1]
+		en.y = en.p[en.idx][2]
+		table.insert(Enemies, en)
+	elseif Game.time == 60 then
+		local en={id=UI.bat, p=Game.path2, idx=1, flip=1}
+		en.x = en.p[en.idx][1]
+		en.y = en.p[en.idx][2]
+		table.insert(Enemies, en)
 	end
 
 	for i,e in ipairs(Enemies) do
-		local p,idx=e.p,e.idx
-		if e.idx==#p then
-			HQ.hp=HQ.hp-1
-			table.remove(Enemies,i)
-			Game.mapOffsetX=3
-			Game.mapOffsetY=3
+		local p,idx = e.p,e.idx
+		if e.idx == #p then
+			HitHQ(i)
 		else
-			local aX,aY,bX,bY=p[idx][1],p[idx][2],p[idx+1][1],p[idx+1][2]
+			local aX,aY,bX,bY = p[idx][1],p[idx][2],p[idx+1][1],p[idx+1][2]
 			if aX == bX then
-				if aY < bY then e.y=e.y+1 else e.y=e.y-1 end
+				if aY < bY then e.y = e.y+1 else e.y = e.y-1 end
 			else
-				if aX < bX then e.x=e.x+1 else e.x=e.x-1 end
+				if aX < bX then e.x = e.x+1 else e.x = e.x-1 end
 			end
-			if e.x==bX and e.y==bY then e.idx=idx+1 end
+			if e.x == bX and e.y == bY then e.idx = idx+1 end
 		end
 	end
+end
 
-	t=t<120 and t+1 or 0
+function UpdateGame()
+	if HQ.hp == 0 then
+		UI.tower = UI.towerFire
+		Game.over = true
+		UI.mapX = 0
+		UI.mapY = 0
+	else
+		Game.time = Game.time<120 and Game.time+1 or 0
+	end
+end
+
+function HitHQ(i)
+	HQ.hp = HQ.hp-1
+	table.remove(Enemies, i)
+	table.insert(SFX, {type="shake", x=3, y=3})
+	table.insert(SFX, {type="visual", kind="smoke", id=UI.smoke1, x=HQ.x, y=HQ.y, t=10})
 end
 
 function Draw()
-	map(30,0,30,17,Game.mapOffsetX,Game.mapOffsetY,-1,1,Remap)
-	spr(Game.tower,HQ.x,HQ.y,0,1,0,0,2,2)
+	map(30,0,30,17,UI.mapX,UI.mapY,-1,1,Remap)
+	spr(UI.tower,HQ.x,HQ.y,0,1,0,0,2,2)
+
+	DrawSFX()
 
 	if not Game.over then
-		local fullHearts=math.floor(HQ.hp/4)
-		for i=1,fullHearts do
-			spr(Game.hp,240-16*i,120,0,1,0,0,2,2)
-		end
-		local rest,restX=math.fmod(HQ.hp,4),240-16*fullHearts-8
-		if rest==1 then
-			spr(Game.hp+1,restX,120,0,1,0,0,1,1)
-		elseif rest==2 then
-			spr(Game.hp+1,restX,120,0,1,0,0,1,2)
-		elseif rest==3 then
-			spr(Game.hp,restX-8,120,0,1,0,0,1,1)
-			spr(Game.hp+1,restX,120,0,1,0,0,1,2)
-		end
-
-		spr(Game.money,0,120,0,1,0,0,2,2)
+		DrawHP()
+		spr(UI.money,0,120,0,1,0,0,2,2)
 		print(HQ.gold,16,124,12,false,2)
+
+		DrawEnemies()
 	else
 		print("Game Over",68,124,2,false,2)
 	end
+end
 
+function DrawSFX()
+	for i,f in ipairs(SFX) do
+		if f.type == "visual" then
+			spr(f.id,f.x,f.y,0,1,0,0,2,2)
+		end
+	end
+end
+
+function DrawHP()
+	local fullHearts = math.floor(HQ.hp/4)
+	for i=1, fullHearts do
+		spr(UI.hp,240-16*i,120,0,1,0,0,2,2)
+	end
+	local rest,restX = math.fmod(HQ.hp,4),240-16*fullHearts-8
+	if rest == 1 then
+		spr(UI.hp+1,restX,120,0,1,0,0,1,1)
+	elseif rest == 2 then
+		spr(UI.hp+1,restX,120,0,1,0,0,1,2)
+	elseif rest == 3 then
+		spr(UI.hp,restX-8,120,0,1,0,0,1,1)
+		spr(UI.hp+1,restX,120,0,1,0,0,1,2)
+	end
+end
+
+function DrawEnemies()
 	for i,e in ipairs(Enemies) do
 		spr(e.id,e.x,e.y,0,1,e.flip,0,2,2)
 	end
@@ -195,10 +234,18 @@ end
 -- 033:1111110000000110000000110000000100000001000000010000000100000001
 -- 034:0111111010000001100000011000000110000001100000011000000101111110
 -- 035:0000000000344400034222400343324003433240034332400034440000000000
+-- 036:000000000000ffff00fff1120ff22244ff244344f2344334f1334443f1334444
+-- 037:00000000ff0000002ff0000041ff0000432f0000322f000032ff00001ff00000
+-- 038:0000000000000fff0000ff220000f2440ffff244ff221234f3444443f333443f
+-- 039:00000000ff0000001ff0000041ff0000432f0000322f000022ff0000fff00000
 -- 048:1000000010000000100000001000000010000000110000000110000000111111
 -- 049:0000000100000001000000010000000100000001000000110000011011111100
 -- 050:000000000ff0ff00fc3f32f0f33322f00f332f0000f2f000000f000000000000
 -- 051:0044420004233420423423424244424242444242423423420423342000444200
+-- 052:ff2233440ffff234000f3344000f3444000ff3440000ff3200000fff00000000
+-- 053:41ff0000441f0000442f0000442f000022ff0000fff00000f000000000000000
+-- 054:f223341fff2211f00fffff0f000000ff00000ff200000f2400000ff3000000ff
+-- 055:0000000000000000fff0000021ff0000441f0000322f000022ff0000fff00000
 -- 064:0ffffff0ffcccddffcccccdf02c22cdffcfcccdffccccdff0fcfcdf00ffffff0
 -- 065:000002330000224200324320ccccc320fcfcc420cfcc3200ccc3200003420000
 -- 066:0ffffff0f222221ff323221ff323211ff222211ffcc2211ff2f211ff0ffffff0
